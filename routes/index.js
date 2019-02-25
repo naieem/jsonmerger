@@ -28,7 +28,7 @@ fs.readFile(config.file1.path, 'utf8', function(err, data) {
 fs.readFile(config.file2.path, 'utf8', function(err, oldData) {
     oldFilesdata = JSON.parse(oldData);
     oldFilesKey = Object.keys(oldFilesdata);
-    console.log(config.file1.name + ' read done');
+    console.log(config.file2.name + ' read done');
     console.log('Total Key found ' + oldFilesKey.length + ' in ' + config.file2.name);
 });
 
@@ -89,36 +89,35 @@ router.get('/getmergedFile', function(req, res, next) {
 function getmergedFile() {
     return new Promise((resolve, reject) => {
         let updatedData = null;
-        getExistingchanges()
-            .then((result) => {
-                if (oldFilesKey.length > newFilesKey.length) {
-                    updatedData = oldFilesdata;
-                }
-                if (oldFilesKey.length < newFilesKey.length) {
-                    updatedData = newFilesData;
-                }
-                // if there are exising data that changed
+        getExistingchanges().then((result) => {
+            if (oldFilesKey.length > newFilesKey.length) {
+                updatedData = oldFilesdata;
+            }
+            if (oldFilesKey.length < newFilesKey.length) {
+                updatedData = newFilesData;
+            }
+            // if there are exising data that changed
+            if (result && result.length) {
+                result.forEach((latestData, index) => {
+                    if (updatedData[latestData.key]) {
+                        updatedData[latestData.key] = latestData.newValue;
+                    }
+                });
+                console.log('Existing value changes done');
+            } else {
+                console.log('No existing value changes found');
+            }
+            // return newly added keys
+            getnewaddedchanges().then((result) => {
                 if (result && result.length) {
-                    result.forEach((latestData, index) => {
-                        if (updatedData[latestData.key]) {
-                            updatedData[latestData.key] = latestData.newValue;
-                        }
+                    result.forEach((res, index) => {
+                        updatedData[res.key] = res.value;
                     });
-                    console.log('Existing value changes done');
-                } else {
-                    console.log('No existing value changes found');
+                    console.log('Newly added changes added to list done');
                 }
-                // return newly added keys
-                getnewaddedchanges()
-                    .then((result) => {
-                        if (result && result.length) {
-                            result.forEach((res, index) => {
-                                updatedData[res.key] = res.value;
-                            });
-                        }
-                        resolve(updatedData);
-                    });
+                resolve(updatedData);
             });
+        });
     });
 }
 
@@ -148,11 +147,23 @@ function getExistingchanges() {
 function getnewaddedchanges() {
     return new Promise(function(resolve, reject) {
         var changedValue = [];
-        newFilesKey.forEach((key, index) => {
-            if (!oldFilesKey.includes(key)) {
-                changedValue.push({ key: key, value: newFilesData[key] });
-            }
-        });
+        var fromValues = [];
+        var toValues = [];
+        if (newFilesKey.length > oldFilesKey.length) {
+            newFilesKey.forEach((key, index) => {
+                if (!oldFilesKey.includes(key)) {
+                    changedValue.push({ key: key, value: newFilesData[key] });
+                }
+            });
+        }
+        if (newFilesKey.length < oldFilesKey.length) {
+            oldFilesKey.forEach((key, index) => {
+                if (!newFilesKey.includes(key)) {
+                    changedValue.push({ key: key, value: oldFilesdata[key] });
+                }
+            });
+        }
+
         resolve(changedValue);
     });
 }

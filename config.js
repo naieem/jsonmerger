@@ -1,10 +1,10 @@
 module.exports = {
     file1: {
-        name: 'client file',
-        path: './files/client_de_new.json'
+        name: 'master file',
+        path: './files/de_master.json'
     },
     file2: {
-        name: 'local file',
-        path: './files/prod_de_old.json'
+        name: 'dev file',
+        path: './files/de_dev.json'
     }
 }
